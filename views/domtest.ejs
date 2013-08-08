@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DOM speed test</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <style>
+      .col {
+        float: left;
+        width: 45%;
+      }
+    </style>
+    <script src="/javascripts/jquery.min.js"></script>
+    <script src="/javascripts/timer.js"></script>
+  </head>
+  <body>
+    <div>
+      How many to get: <input id="fetchsize" value="10">
+    </div>
+    <div class="col" id="col1">
+      <h2>JSON data</h2> <button id="fetchjson">Get</button>
+      <ul id="jsonlist">
+      </ul>
+    </div>
+    <div class="col" id="col2">
+      <h2>InnerHTML</h2> <button id="fetchplain">Get</button>
+      <ul id="plainlist">
+      </ul>
+    </div>
+    <script>
+      var timer = new Timer();
+      var loaded = false;
+      var getSize = function() {
+        return document.getElementById('fetchsize').value
+      }
+      $('#fetchjson').on('click',function(e) {
+        loaded = false
+        $.get('/domtest/jsondata?size=' + getSize(),
+          function(data) {
+            var listId = 'jsonlist'
+            clearList(listId)
+            var jsonData = JSON.parse(data)
+            loaded = true
+            var list = document.getElementById(listId)
+            jsonData.forEach(function(item) {
+              var li = document.createElement('li')
+              li.innerText = item.name + ":" + item.value
+              list.appendChild(li)
+            })
+            console.log("DOM operation complete: " + timer.milliseconds())
+          }
+        );
+      })
+      $('#fetchplain').on('click',function(e) {
+        loaded = false
+        var listId = 'plainlist'
+        clearList(listId)
+        $.get('/domtest/plaindata?size=' + getSize(),
+          function(data) {
+            timer.start();
+            loaded = true
+            $('#'+listId).html(data);
+          }
+        );
+      })
+      var clearList = function(listId) {
+        $('#'+listId).html('')
+      }
+      MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+      var observer = new MutationObserver(function(mutations, observer) {
+        // fired when a mutation occurs
+        if (loaded) {
+          console.log("InnerHTML mutation complete: " + timer.milliseconds())
+        }
+      });
+      observer.observe(document, {
+        subtree: true,
+        attributes: true,
+        childList: true,
+        characterData: true,
+        attributeOldValue: true,
+        characterDataOldValue: true
+      });
+    </script>
+  </body>
+</html>
